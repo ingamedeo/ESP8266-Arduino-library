@@ -18,7 +18,9 @@
     _ipdSt[0] = '+'; _ipdSt[1] = 'I'; _ipdSt[2] = 'P'; _ipdSt[3] = 'D'; _ipdSt[4] = ',';
     _getSt[0] = 'G'; _getSt[1] = 'E'; _getSt[2] = 'T';
     _postSt[0] = 'P'; _postSt[1] = 'O'; _postSt[2] = 'S'; _postSt[3] = 'T';
+    _httpSt[0] = ' '; _httpSt[1] = 'H'; _httpSt[2] = 'T'; _httpSt[3] = 'T'; _httpSt[4] = 'P'; _httpSt[5] = '/';
     _okSt[0] = 'O'; _okSt[1] = 'K';
+    _deb[0] = 'y'; _deb [1] = 'A'; _deb[2] = 'Y'; _deb [3] = '.';
   }
 
   bool ESP8266::begin(int BAUDRATE, int PORT) {
@@ -45,17 +47,28 @@ int ESP8266::getRequest() {
 
   //Search for +IPD,
   while (_espSerial->available()) {
-    if (search(_ipdSt)) {
-      count = 0;
+    if (search(_ipdSt, false)) {
+      _count = 0;
       char id = _espSerial->read();
-
+	//search for GET
       while (_espSerial->available()) {
-        if (search(getSt)) {
-          count = 0;
+        if (search(_getSt, false)) {
+          _count = 0;
           skip(3);
-          _paramsLastRead = 0;
+	
+	//Search for  HTTP/
+          _paramsLastRead = 1;
           while (_espSerial->available()) {
-            add(_espSerial->read());
+		if(search(_httpSt, true)) {
+			//int pLength = _paramsLastRead - 6;
+			//char tmp[pLength]; memset(tmp, 0, pLength);
+			//memcpy(tmp, _params, pLength);
+			//free(_params);
+			//_params = tmp;
+			//Break the whiles
+			_espSerial->flush();
+			return id;
+		}
           }
         }
       }
@@ -66,8 +79,8 @@ int ESP8266::getRequest() {
   return -1;
 }
 
-char* ESP8266::getRequestParams(int id) {
-
+char* ESP8266::getRequestParams() {
+	return _params;
 }
 
 void ESP8266::sendAnswer(int id, char*) {
@@ -77,7 +90,7 @@ void ESP8266::sendAnswer(int id, char*) {
 void ESP8266::skip(int count) {
   int i;
   for (i = 0; i < count; i++) {
-    _espSerial.read();
+    _espSerial->read();
   }
 }
 
@@ -85,26 +98,27 @@ char* ESP8266::serialRead(int len) {
 
 }
 
-bool ESP8266::search(char* text) {
+bool ESP8266::search(char* text, bool allocate) {
 	char c;
 	bool orRes = false;
 	int i;
 	int len = strlen(text); //Get text length
   //Read just one char from serial buffer
   c = _espSerial->read();
+//allocate the char if requested
+  if (allocate) {
+	add(c);
+  }
   /* For each char in text */
   for (i = 0; i < len; i++) {
   	if (c == text[i]) {
   		orRes = true;
-  	} 
-  }
-  if (orRes == true) {
-  	_count++;
-  } 
-  else {
-  	if (_count > 0) {
-  		_count--;
+		_count++;
+		break;
   	}
+  }
+  if (!orRes && _count > 0) {
+  	_count--;
   }
   if (_count==len) {
   	return true;
@@ -123,7 +137,7 @@ while (!_espSerial->available() && timeout <= MAX_CYCLES) { //Wait until we get 
 } 
 while (timeout <= MAX_CYCLES) { //We got sth
 	while (_espSerial->available() && timeout <= MAX_CYCLES) {
-		if (search(text)) {
+		if (search(text, false)) {
 			return true;
 		} else {
 			delay(10);
@@ -137,12 +151,23 @@ return false;
 }
 
 void ESP8266::add(char ch) {
+  char* tmpPar;
+  char* tmpC;
+  tmpC = &ch;
   _paramsLastRead++;
-  if (_paramsLastRead==1) {
+  if (_paramsLastRead==2) {
     _params = (char*) malloc(_paramsLastRead * sizeof(char));
-    strcpy(_params, ch);
+    strcpy(_params, tmpC);
   } else {
-    _params = (char*) realloc(_params, _paramsLastRead * sizeof(char));
-    strcat(_params, ch);
+    tmpPar = (char*) malloc(_paramsLastRead * sizeof(char));
+    strcpy(tmpPar, _params);
+    free(_params);
+    strcat(tmpPar, tmpC);
+        _params = (char*) malloc(_paramsLastRead * sizeof(char));
+    strcpy(_params, tmpPar);
   }
+}
+
+char* ESP8266::debug() {
+	return _deb;
 }
