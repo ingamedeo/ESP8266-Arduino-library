@@ -20,6 +20,7 @@
     _postSt[0] = 'P'; _postSt[1] = 'O'; _postSt[2] = 'S'; _postSt[3] = 'T';
     _httpSt[0] = ' '; _httpSt[1] = 'H'; _httpSt[2] = 'T'; _httpSt[3] = 'T'; _httpSt[4] = 'P'; _httpSt[5] = '/';
     _okSt[0] = 'O'; _okSt[1] = 'K';
+    _arrSt[0] = '>';
 
     clearArray();
   }
@@ -62,12 +63,13 @@ int ESP8266::getRequest() {
           clearArray();
           while (_espSerial->available()) {
             if(search(_httpSt, true)) {
-			//int pLength = _paramsLastRead - 6;
-			//char tmp[pLength]; memset(tmp, 0, pLength);
-			//memcpy(tmp, _params, pLength);
-			//free(_params);
-			//_params = tmp;
-			//Break the whiles
+		//id=2 HTTP/
+		int i;
+		for (i = 1; i < 7; i++) {
+			_params[_paramsLastRead - i] = 0;
+		}
+
+		//Break the whiles
              _espSerial->flush();
              return id;
            }
@@ -85,8 +87,18 @@ char* ESP8266::getRequestParams() {
 	return _params;
 }
 
-void ESP8266::sendAnswer(int id, char*) {
-
+bool ESP8266::sendAnswer(int id, char* response) {
+bool result = false;
+	_espSerial->print("AT+CIPSEND=");
+	_espSerial->print("0");
+	_espSerial->print(",");
+	_espSerial->println(strlen(response));
+if (waitResponse(_arrSt)) {
+	result = true;
+	_espSerial->println("CIAO");
+}
+	
+	return result;
 }
 
 void ESP8266::skip(int count) {
@@ -94,10 +106,6 @@ void ESP8266::skip(int count) {
   for (i = 0; i < count; i++) {
     _espSerial->read();
   }
-}
-
-char* ESP8266::serialRead(int len) {
-
 }
 
 bool ESP8266::search(char* text, bool allocate) {

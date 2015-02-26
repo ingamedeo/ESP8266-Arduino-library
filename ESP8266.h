@@ -19,10 +19,9 @@ public:
 	bool begin(int BAUDRATE, int PORT);
 	int getRequest(); //(get id, save params)
 	char* getRequestParams(); //(get params)
-	void sendAnswer(int id, char*);
+	bool sendAnswer(int id, char* response);
 private:
 	void skip(int count);
-	char* serialRead(int len);
 	bool search(char* text, bool allocate);
 	bool waitResponse(char* text);
 	void clearArray();
@@ -31,6 +30,7 @@ private:
 	char _postSt[5];
 	char _httpSt[7];
 	char _okSt[3];
+	char _arrSt[2];
 	int _resultLen = 0;
 	char* _result;
 	char _params[PARAMS_MAX_LEN];
