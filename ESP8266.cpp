@@ -20,7 +20,8 @@
     _postSt[0] = 'P'; _postSt[1] = 'O'; _postSt[2] = 'S'; _postSt[3] = 'T';
     _httpSt[0] = ' '; _httpSt[1] = 'H'; _httpSt[2] = 'T'; _httpSt[3] = 'T'; _httpSt[4] = 'P'; _httpSt[5] = '/';
     _okSt[0] = 'O'; _okSt[1] = 'K';
-    _deb[0] = 'y'; _deb [1] = 'A'; _deb[2] = 'Y'; _deb [3] = '.';
+
+    clearArray();
   }
 
   bool ESP8266::begin(int BAUDRATE, int PORT) {
@@ -34,7 +35,7 @@
   if (!waitResponse(_okSt)) {
   	wdt_enable(WDTO_15MS);
   }
-  	delay(100);
+  delay(100);
   _espSerial->print("AT+CIPSERVER=1,");
   _espSerial->println(PORT);
   if (!waitResponse(_okSt)) {
@@ -55,28 +56,29 @@ int ESP8266::getRequest() {
         if (search(_getSt, false)) {
           _count = 0;
           skip(3);
-	
+
 	//Search for  HTTP/
-          _paramsLastRead = 1;
+          _paramsLastRead = 0;
+          clearArray();
           while (_espSerial->available()) {
-		if(search(_httpSt, true)) {
+            if(search(_httpSt, true)) {
 			//int pLength = _paramsLastRead - 6;
 			//char tmp[pLength]; memset(tmp, 0, pLength);
 			//memcpy(tmp, _params, pLength);
 			//free(_params);
 			//_params = tmp;
 			//Break the whiles
-			_espSerial->flush();
-			return id;
-		}
-          }
-        }
-      }
-    }
+             _espSerial->flush();
+             return id;
+           }
+         }
+       }
+     }
+   }
 
-  }
+ }
 
-  return -1;
+ return -1;
 }
 
 char* ESP8266::getRequestParams() {
@@ -107,30 +109,31 @@ bool ESP8266::search(char* text, bool allocate) {
   c = _espSerial->read();
 //allocate the char if requested
   if (allocate) {
-	add(c);
-  }
+   _params[_paramsLastRead] = c;
+   _paramsLastRead++;
+ }
   /* For each char in text */
-  for (i = 0; i < len; i++) {
-  	if (c == text[i]) {
-  		orRes = true;
-		_count++;
-		break;
-  	}
+ for (i = 0; i < len; i++) {
+   if (c == text[i]) {
+    orRes = true;
+    _count++;
+    break;
   }
-  if (!orRes && _count > 0) {
-  	_count--;
-  }
-  if (_count==len) {
-  	return true;
-  } 
-  else {
-  	return false;
-  }
+}
+if (!orRes && _count > 0) {
+ _count--;
+}
+if (_count==len) {
+ return true;
+} 
+else {
+ return false;
+}
 }
 
 bool ESP8266::waitResponse(char* text) {
-int timeout = 0;
-_count = 0;
+  int timeout = 0;
+  _count = 0;
 while (!_espSerial->available() && timeout <= MAX_CYCLES) { //Wait until we get some data in...
 	delay(10);
 	timeout++;
@@ -150,24 +153,9 @@ while (timeout <= MAX_CYCLES) { //We got sth
 return false;
 }
 
-void ESP8266::add(char ch) {
-  char* tmpPar;
-  char* tmpC;
-  tmpC = &ch;
-  _paramsLastRead++;
-  if (_paramsLastRead==2) {
-    _params = (char*) malloc(_paramsLastRead * sizeof(char));
-    strcpy(_params, tmpC);
-  } else {
-    tmpPar = (char*) malloc(_paramsLastRead * sizeof(char));
-    strcpy(tmpPar, _params);
-    free(_params);
-    strcat(tmpPar, tmpC);
-        _params = (char*) malloc(_paramsLastRead * sizeof(char));
-    strcpy(_params, tmpPar);
+void ESP8266::clearArray() {
+  int i;
+  for (i = 0; i < strlen(_params); ++i) {
+    _params[i] = 0;
   }
-}
-
-char* ESP8266::debug() {
-	return _deb;
 }

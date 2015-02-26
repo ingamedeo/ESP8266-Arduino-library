@@ -10,6 +10,8 @@
 #include "Arduino.h"
 #include <SoftwareSerial.h>
 
+#define PARAMS_MAX_LEN 50
+
 class ESP8266 {
 
 public:
@@ -18,14 +20,12 @@ public:
 	int getRequest(); //(get id, save params)
 	char* getRequestParams(); //(get params)
 	void sendAnswer(int id, char*);
-	char* debug ();
 private:
 	void skip(int count);
 	char* serialRead(int len);
 	bool search(char* text, bool allocate);
 	bool waitResponse(char* text);
-	void add(char ch);
-	char _deb[10];
+	void clearArray();
 	char _ipdSt[6];
 	char _getSt[4];
 	char _postSt[5];
@@ -33,9 +33,9 @@ private:
 	char _okSt[3];
 	int _resultLen = 0;
 	char* _result;
-	char* _params;
+	char _params[PARAMS_MAX_LEN];
 	int _count = 0;
-	int _paramsLastRead = 1;
+	int _paramsLastRead = 0;
 	SoftwareSerial* _espSerial;
 };
 
