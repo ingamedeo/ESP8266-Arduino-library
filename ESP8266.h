@@ -17,11 +17,11 @@ class ESP8266 {
 public:
 	ESP8266(uint8_t rx, uint8_t tx);
 	bool begin(int BAUDRATE, int PORT);
-	int getRequest(); //(get id, save params)
+	int8_t getRequest(); //(get id, save params)
 	char* getRequestParams(); //(get params)
-	bool sendAnswer(int id, char* response);
+	void sendAnswer(int8_t id, char* response);
 private:
-	void skip(int count);
+	void skip(uint16_t count);
 	bool search(char* text, bool allocate);
 	bool waitResponse(char* text);
 	void clearArray();
@@ -30,12 +30,11 @@ private:
 	char _postSt[5];
 	char _httpSt[7];
 	char _okSt[3];
-	char _arrSt[2];
-	int _resultLen = 0;
+	uint16_t _resultLen = 0;
 	char* _result;
 	char _params[PARAMS_MAX_LEN];
-	int _count = 0;
-	int _paramsLastRead = 0;
+	uint16_t _count = 0;
+	uint16_t _paramsLastRead = 0;
 	SoftwareSerial* _espSerial;
 };
 

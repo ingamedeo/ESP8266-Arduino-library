@@ -20,8 +20,7 @@
     _postSt[0] = 'P'; _postSt[1] = 'O'; _postSt[2] = 'S'; _postSt[3] = 'T';
     _httpSt[0] = ' '; _httpSt[1] = 'H'; _httpSt[2] = 'T'; _httpSt[3] = 'T'; _httpSt[4] = 'P'; _httpSt[5] = '/';
     _okSt[0] = 'O'; _okSt[1] = 'K';
-    _arrSt[0] = '>';
-
+    
     clearArray();
   }
 
@@ -45,7 +44,7 @@
   delay(100);
 }
 
-int ESP8266::getRequest() {
+int8_t ESP8266::getRequest() {
 
   //Search for +IPD,
   while (_espSerial->available()) {
@@ -64,7 +63,7 @@ int ESP8266::getRequest() {
           while (_espSerial->available()) {
             if(search(_httpSt, true)) {
 		//id=2 HTTP/
-		int i;
+		uint8_t i;
 		for (i = 1; i < 7; i++) {
 			_params[_paramsLastRead - i] = 0;
 		}
@@ -87,22 +86,22 @@ char* ESP8266::getRequestParams() {
 	return _params;
 }
 
-bool ESP8266::sendAnswer(int id, char* response) {
-bool result = false;
+void ESP8266::sendAnswer(int8_t id, char* response) {
 	_espSerial->print("AT+CIPSEND=");
-	_espSerial->print("0");
+	_espSerial->print((char) id);
 	_espSerial->print(",");
-	_espSerial->println(strlen(response));
-if (waitResponse(_arrSt)) {
-	result = true;
-	_espSerial->println("CIAO");
-}
-	
-	return result;
+	_espSerial->println(strlen(response)+1);
+  delay(100);
+  _espSerial->print(response);
+  _espSerial->println('\0');
+  delay(100);
+  _espSerial->print("AT+CIPCLOSE=");
+  _espSerial->println((char) id);
 }
 
-void ESP8266::skip(int count) {
-  int i;
+
+void ESP8266::skip(uint16_t count) {
+  uint16_t i;
   for (i = 0; i < count; i++) {
     _espSerial->read();
   }
@@ -111,8 +110,8 @@ void ESP8266::skip(int count) {
 bool ESP8266::search(char* text, bool allocate) {
 	char c;
 	bool orRes = false;
-	int i;
-	int len = strlen(text); //Get text length
+	uint16_t i;
+	uint16_t len = strlen(text); //Get text length
   //Read just one char from serial buffer
   c = _espSerial->read();
 //allocate the char if requested
@@ -140,7 +139,7 @@ else {
 }
 
 bool ESP8266::waitResponse(char* text) {
-  int timeout = 0;
+  uint16_t timeout = 0;
   _count = 0;
 while (!_espSerial->available() && timeout <= MAX_CYCLES) { //Wait until we get some data in...
 	delay(10);
@@ -162,7 +161,7 @@ return false;
 }
 
 void ESP8266::clearArray() {
-  int i;
+  uint16_t i;
   for (i = 0; i < strlen(_params); ++i) {
     _params[i] = 0;
   }
